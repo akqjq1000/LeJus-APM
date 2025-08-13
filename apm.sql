@@ -1,0 +1,50 @@
+create table access_points (
+    -- Access Points Unique characteristics
+    `id` integer primary key autoincrement,
+    `name` varchar(255) NOT NULL,
+    `fqln` varchar(255) DEFAULT NULL,
+    `flags` varchar(255) DEFAULT NULL,
+    `group_name` varchar(255) DEFAULT NULL,
+    `ip_address` varchar(45) DEFAULT NULL,
+    `mac_address` varchar(17) DEFAULT NULL,
+    `wired_mac_address` varchar(17) DEFAULT NULL,
+    `outer_ip` varchar(45) DEFAULT NULL,
+    `port` varchar(10) DEFAULT NULL,
+    `serial_number` varchar(255) DEFAULT NULL,
+    `standby_ip` varchar(45) DEFAULT NULL,
+    `status` enum('online','offline','maintenance','error') DEFAULT 'offline',
+    `switch_ip` varchar(45) DEFAULT NULL,
+    `user_info` text DEFAULT NULL,
+    `deployment_date` date DEFAULT NULL,
+    `client_count` int(11) DEFAULT 0,
+    `last_seen` timestamp NULL DEFAULT NULL,
+    `uptime` varchar(100) DEFAULT NULL,
+    `description` text DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+    `deleted_at` timestamp NULL DEFAULT NULL,
+    `is_deleted` boolean DEFAULT false,
+
+    -- Foreign Key Relationships
+    `location_id` integer DEFAULT NULL,
+    `model_id` integer DEFAULT NULL,
+    `firmware_id` integer DEFAULT NULL,
+    `inventory_id` integer DEFAULT NULL,
+
+    FOREIGN KEY (`location_id`) REFERENCES locations(`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    FOREIGN KEY (`model_id`) REFERENCES models(`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    FOREIGN KEY (`firmware_id`) REFERENCES firmwares(`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    FOREIGN KEY (`inventory_id`) REFERENCES inventories(`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+
+    -- Indexes
+    UNIQUE (`mac_address`),
+    UNIQUE (`serial_number`),
+    INDEX `idx_access_points_name` (`name`),
+    INDEX `idx_access_points_ip_address` (`ip_address`),
+    INDEX `idx_access_points_mac_address` (`mac_address`),
+    INDEX `idx_access_points_serial_number` (`serial_number`),
+    INDEX `idx_access_points_location_id` (`location_id`),
+    INDEX `idx_access_points_model_id` (`model_id`),
+    INDEX `idx_access_points_firmware_id` (`firmware_id`),
+    INDEX `idx_access_points_inventory_id` (`inventory_id`)
+);
