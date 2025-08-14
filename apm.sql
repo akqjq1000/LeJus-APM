@@ -4,7 +4,6 @@ create table access_points (
     `name` varchar(255) NOT NULL,
     `fqln` varchar(255) DEFAULT NULL,
     `flags` varchar(255) DEFAULT NULL,
-    `group_name` varchar(255) DEFAULT NULL,
     `ip_address` varchar(45) DEFAULT NULL,
     `mac_address` varchar(17) DEFAULT NULL,
     `wired_mac_address` varchar(17) DEFAULT NULL,
@@ -30,11 +29,13 @@ create table access_points (
     `model_id` integer DEFAULT NULL,
     `firmware_id` integer DEFAULT NULL,
     `inventory_id` integer DEFAULT NULL,
+    `group_name` varchar(255) DEFAULT NULL,
 
-    FOREIGN KEY (`location_id`) REFERENCES locations(`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    FOREIGN KEY (`location_id`) REFERENCES access_point_locations(`id`) ON DELETE SET NULL ON UPDATE CASCADE,
     FOREIGN KEY (`model_id`) REFERENCES models(`id`) ON DELETE SET NULL ON UPDATE CASCADE,
     FOREIGN KEY (`firmware_id`) REFERENCES firmwares(`id`) ON DELETE SET NULL ON UPDATE CASCADE,
     FOREIGN KEY (`inventory_id`) REFERENCES inventories(`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    FOREIGN KEY (`group_name`) REFERENCES access_point_groups(`name`) ON DELETE SET NULL ON UPDATE CASCADE,
 
     -- Indexes
     UNIQUE (`mac_address`),
@@ -49,10 +50,49 @@ create table access_points (
     INDEX `idx_access_points_inventory_id` (`inventory_id`)
 );
 
+create table `access_point_locations` (
+    -- Access Point Locations Unique characteristics
+    `id` integer primary key autoincrement,
+    `name` varchar(255) NOT NULL,
+    `description` text DEFAULT NULL,
+    `address` text DEFAULT NULL,
+    `latitude` decimal(9,6) DEFAULT NULL,
+    `longitude` decimal(9,6) DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+    `deleted_at` timestamp NULL DEFAULT NULL,
+    `is_deleted` boolean DEFAULT false,
+
+    -- Indexes
+    UNIQUE (`name`),
+    INDEX `idx_access_point_locations_name` (`name`)
+);
+
+create table `access_point_groups` (
+    -- Access Point Groups Unique characteristics
+    `id` integer primary key autoincrement,
+    `name` varchar(255) NOT NULL,
+    `description` text DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+    `deleted_at` timestamp NULL DEFAULT NULL,
+    `is_deleted` boolean DEFAULT false,
+
+    -- Foreign Key Relationships
+    `location_id` integer DEFAULT NULL,
+
+    -- Foreign Key Constraints
+    FOREIGN KEY (`location_id`) REFERENCES access_point_locations(`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+
+    -- Indexes
+    UNIQUE (`name`),
+    INDEX `idx_access_point_groups_name` (`name`)
+)
+
 create table `access_point_models` (
     -- Access Point Models Unique characteristics
     `id` integer primary key autoincrement,
-    `manufacturer` varchar(255) NOT NULL,
+    `manufacturer_id` integer NOT NULL,
     `name` varchar(255) NOT NULL,
     `model_number` varchar(255) DEFAULT NULL,
     `category_id` integer DEFAULT NULL,
@@ -93,6 +133,24 @@ create table `access_point_models` (
     INDEX `idx_access_point_models_name` (`name`)
 );
 
+create table `access_point_manufacturers` (
+    -- Access Point Manufacturers Unique characteristics
+    `id` integer primary key autoincrement,
+    `name` varchar(255) NOT NULL,
+    `website` varchar(255) DEFAULT NULL,
+    `contact_email` varchar(255) DEFAULT NULL,
+    `contact_phone` varchar(50) DEFAULT NULL,
+    `address` text DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+    `deleted_at` timestamp NULL DEFAULT NULL,
+    `is_deleted` boolean DEFAULT false,
+
+    -- Indexes
+    UNIQUE (`name`),
+    INDEX `idx_access_point_manufacturers_name` (`name`)
+);
+
 create table `access_point_model_categories` (
     -- Access Point Model Categories Unique characteristics
     `id` integer primary key autoincrement,
@@ -100,8 +158,69 @@ create table `access_point_model_categories` (
     `description` text DEFAULT NULL,
     `created_at` timestamp NULL DEFAULT current_timestamp(),
     `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+    `deleted_at` timestamp NULL DEFAULT NULL,
+    `is_deleted` boolean DEFAULT false,
 
     -- Indexes
     UNIQUE (`name`),
     INDEX `idx_access_point_model_categories_name` (`name`)
+);
+
+create table `access_point_firmwares` (
+    -- Access Point Firmwares Unique characteristics
+    `id` integer primary key autoincrement,
+    `version` varchar(100) NOT NULL,
+    `release_date` date DEFAULT NULL,
+    `description` text DEFAULT NULL,
+    `download_url` text DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+    `deleted_at` timestamp NULL DEFAULT NULL,
+    `is_deleted` boolean DEFAULT false,
+
+    -- Foreign Key Relationships
+    `manufacturer_id` integer NOT NULL,
+
+    -- Foreign Key Constraints
+    FOREIGN KEY (`manufacturer_id`) REFERENCES access_point_manufacturers(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+
+    -- Indexes
+    UNIQUE (`version`),
+    INDEX `idx_access_point_firmwares_version` (`version`)
+);
+
+create table `access_point_inventories` (
+    -- Access Point Inventories Unique characteristics
+    `id` integer primary key autoincrement,
+    `serial_number` varchar(255) NOT NULL,
+    `asset_tag` varchar(255) DEFAULT NULL,
+    `purchase_date` date DEFAULT NULL,
+    `warranty_end_date` date DEFAULT NULL,
+    `purchase_price` decimal(10,2) DEFAULT NULL,
+    `vendor` varchar(255) DEFAULT NULL,
+    `inventory_status` enum('in_stock','deployed','maintenance','retired','rma') DEFAULT 'in_stock',
+    `condition_status` enum('new','used','refurbished','damaged') DEFAULT 'new',
+    `notes` text DEFAULT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+    `deleted_at` timestamp NULL DEFAULT NULL,
+    `is_deleted` boolean DEFAULT false,
+
+    -- Foreign Key Relationships
+    `model_id` int(11) NOT NULL,
+    `location_id` int(11) DEFAULT NULL,
+
+    -- Foreign Key Constraints
+    FOREIGN KEY (`location_id`) REFERENCES access_point_locations(`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+    FOREIGN KEY (`model_id`) REFERENCES access_point_models(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+
+    -- Indexes
+    INDEX `idx_access_point_inventories_location_id` (`location_id`),
+    INDEX `idx_access_point_inventories_model_id` (`model_id`),
+    UNIQUE (`serial_number`),
+    UNIQUE (`asset_tag`),
+    INDEX `idx_access_point_inventories_serial_number` (`serial_number`),
+    INDEX `idx_access_point_inventories_asset_tag` (`asset_tag`),
+    INDEX `idx_access_point_inventories_inventory_status` (`inventory_status`),
+    INDEX `idx_access_point_inventories_condition_status` (`condition_status`)
 );
